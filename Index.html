@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tug'ilgan kuning bilan, Hayotim!</title>
+    <style>
+        /* =========================================
+           CSS: UMUMIY VA ORQA FON DIZAYNI
+        ========================================= */
+        body {
+            margin: 0; padding: 0;
+            background: radial-gradient(circle at center, #ffe0b2, #f48fb1); /* Quyosh nuri kabi issiq fon */
+            display: flex; justify-content: center; align-items: center;
+            height: 100vh; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+        }
+
+        /* Yulduzlar sochish uchun maxsus oyna */
+        #particles {
+            position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
+            pointer-events: none; z-index: 100;
+        }
+
+        /* =========================================
+           CSS: 3D KITOB STRUKTURASI
+        ========================================= */
+        .book-container {
+            perspective: 2000px; /* 3D chuqurlik illyuziyasi */
+            width: 90vw; max-width: 900px;
+            height: 75vh; max-height: 600px;
+            position: relative;
+        }
+
+        .book {
+            width: 100%; height: 100%; position: relative;
+            transform-style: preserve-3d;
+            border-radius: 10px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5); /* Kitobning stolga tushadigan katta soyasi */
+        }
+
+        /* Asosiy varaqlar (Boshlang'ich chap va Oxirgi o'ng sahifalar) */
+        .page-base {
+            position: absolute; top: 0; width: 50%; height: 100%;
+            background: linear-gradient(to right, #fdfbf7, #f4f0e6); /* Tabiiy qog'oz rangi */
+            border: 2px solid #e0c097;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.05);
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            padding: 20px; box-sizing: border-box; text-align: center;
+        }
+        .left-base { left: 0; border-radius: 15px 0 0 15px; border-right: 1px solid #ccc; }
+        .right-base { right: 0; border-radius: 0 15px 15px 0; border-left: 1px solid #ccc; }
+
+        /* Aylanadigan varaqlar (Leaves) */
+        .leaf {
+            position: absolute; right: 0; top: 0; width: 50%; height: 100%;
+            transform-style: preserve-3d; transform-origin: left center; /* O'rtadan aylanishi uchun */
+            transition: transform 1.2s cubic-bezier(0.645, 0.045, 0.355, 1); /* Realistik aylanish tezligi */
+            z-index: 2;
+        }
+
+        .leaf.flipped { transform: rotateY(-180deg); } /* Varaq orqaga o'tishi */
+
+        /* Varaqning ikki yuzi (Old va Orqa qismlari) */
+        .page {
+            position: absolute; width: 100%; height: 100%; top: 0; left: 0;
+            backface-visibility: hidden; /* Orqa tomoni ko'rinmasligi uchun */
+            background: linear-gradient(to left, #fdfbf7, #e9e4d5);
+            border: 2px solid #e0c097; border-left: none;
+            border-radius: 0 15px 15px 0;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            padding: 20px; box-sizing: border-box; text-align: center;
+            box-shadow: inset -10px 0 20px rgba(0,0,0,0.05);
+        }
+        /* Orqa sahifalar (Chap tomonga o'tgandagi holati) */
+        .page.back {
+            transform: rotateY(180deg);
+            border-radius: 15px 0 0 15px;
+            border-left: 2px solid #e0c097; border-right: none;
+            background: linear-gradient(to right, #fdfbf7, #e9e4d5);
+            box-shadow: inset 10px 0 20px rgba(0,0,0,0.05);
+        }
+
+        /* Kitob o'rtasidagi buklangan joy soyasi */
+        .spine-shadow {
+            position: absolute; top: 0; left: -15px; width: 30px; height: 100%;
+            background: linear-gradient(to right, transparent, rgba(0,0,0,0.2), transparent);
+            z-index: 50; pointer-events: none;
+        }
+
+        /* =========================================
+           CSS: MATNLAR VA RASMLAR DIZAYNI
+        ========================================= */
+        h1 { color: #c2185b; font-size: 24px; font-family: 'Georgia', serif; text-shadow: 2px 2px 4px rgba(0,0,0,0.2); }
+        h2 { color: #d81b60; font-size: 19px; font-family: 'Georgia', serif; margin-bottom: 10px; }
+        p { color: #555; font-size: 13px; font-weight: bold; line-height: 1.5; }
+
+        .media-content {
+            width: 90%; max-height: 40%; object-fit: cover;
+            border-radius: 10px; border: 4px solid #fff;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3); margin-top: 5px;
+        }
+
+        .gallery {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: 95%;
+            max-height: 45vh; overflow-y: auto; padding-bottom: 40px;
+        }
+        .gallery img {
+            width: 100%; height: 75px; object-fit: cover; border-radius: 8px;
+            border: 2px solid #fff; box-shadow: 0 3px 8px rgba(0,0,0,0.2); cursor: pointer;
+        }
+
+        /* O'tish tugmalari */
+        .btn {
+            background: linear-gradient(45deg, #ff4081, #c2185b);
+            color: white; border: none; padding: 10px 15px; border-radius: 25px;
+            cursor: pointer; font-weight: bold; position: absolute; bottom: 15px;
+            box-shadow: 0 5px 10px rgba(194, 24, 91, 0.4); transition: transform 0.2s;
+            font-size: 13px;
+        }
+        .btn:active { transform: scale(0.90); }
+        .btn-next { right: 15px; }
+        .btn-prev { left: 15px; background: linear-gradient(45deg, #888, #555); }
+        .btn-close { right: 15px; background: linear-gradient(45deg, #f44336, #c62828); }
+
+        /* Tort animatsiyasi */
+        .cake { font-size: 70px; position: relative; margin-top: 10px; }
+        .flame {
+            font-size: 30px; position: absolute; top: -15px; left: 50%;
+            transform: translateX(-50%); animation: flicker 0.4s infinite alternate;
+        }
+        @keyframes flicker {
+            0% { transform: translateX(-50%) scale(1); opacity: 1; }
+            100% { transform: translateX(-50%) scale(1.3); opacity: 0.8; color: #ffeb3b; }
+        }
+
+        /* Katta rasm oynasi */
+        .lightbox {
+            display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(0, 0, 0, 0.9); z-index: 9999;
+            justify-content: center; align-items: center; flex-direction: column;
+        }
+        .lightbox img { max-width: 90%; max-height: 70%; border-radius: 10px; border: 3px solid #fff; }
+        .close-btn { position: absolute; top: 30px; right: 30px; color: white; font-size: 40px; cursor: pointer; }
+        .nav-btns { margin-top: 20px; display: flex; gap: 20px; }
+    </style>
+</head>
+<body>
+
+    <canvas id="particles"></canvas>
+
+    <div class="book-container">
+        <div class="book">
+            
+            <div class="page-base left-base">
+                <h1>SEVIMLI TURMUSH O'RTOG'IM, TUG'ILGAN KUNING BILAN!</h1>
+                <p>Sen mening hayotimdagi eng go'zal, eng bebaho ne'matimsan. Sen bilan o'tgan har bir kunim baxtga to'la...</p>
+            </div>
+
+            <div class="page-base right-base">
+                <h2>Tilak ayt va shamni pufla!</h2>
+                <p>Endi ko'zlaringni yumib, eng ezgu tilaklaringni ayt. Barcha orzularing ushalsin! Tortdagi shamni puf de! 🎂</p>
+                <div class="cake">
+                    🎂
+                    <div class="flame" id="candleFlame">🔥</div>
+                </div>
+                <p id="candleMessage" style="color: #d81b60; font-size: 18px; display: none;">Umring uzoq bo'lsin, jonim!</p>
+                <button class="btn btn-prev" onclick="flipBack(3)">⬅ Qaytish</button>
+                <button class="btn btn-close" onclick="window.close()">Tamom ✖</button>
+            </div>
+
+            <div class="leaf" id="leaf-3" style="z-index: 1;">
+                <div class="page front">
+                    <div class="spine-shadow"></div>
+                    <h2>Mo'mina ayolimga</h2>
+                    <p>Bizning birgalikdagi eng go'zal, eng shirin xotiralarimiz. Har bir onimiz men uchun qadrli:</p>
+                    <div class="gallery">
+                        <img src="rasm3.jpg" alt="rasm"><img src="rasm4.jpg" alt="rasm">
+                        <img src="rasm6.jpg" alt="rasm"><img src="rasm7.jpg" alt="rasm">
+                        <img src="rasm8.jpg" alt="rasm"><img src="rasm9.jpg" alt="rasm">
+                        <img src="rasm10.jpg" alt="rasm"><img src="rasm11.jpg" alt="rasm">
+                    </div>
+                    <button class="btn btn-next" onclick="flipPage(3)">Keyingi ➔</button>
+                </div>
+                <div class="page back">
+                    <div class="spine-shadow" style="left: auto; right: -15px;"></div>
+                    <h2>Farzandlarim onasiga tabrik</h2>
+                    <p>Sen nafaqat mening sevimli yorimsan, balki farzandlarimizning mehribon, mukammal onasisan. Oilamiz farishtasi, boringga shukur!</p>
+                    <button class="btn btn-prev" onclick="flipBack(2)">⬅ Qaytish</button>
+                </div>
+            </div>
+
+            <div class="leaf" id="leaf-2" style="z-index: 2;">
+                <div class="page front">
+                    <div class="spine-shadow"></div>
+                    <h2>Samimiy tilaklar</h2>
+                    <p>Senga atalgan eng shirin va samimiy tilaklarim. Bu video tabriklarim faqat sen uchun, farishtam!</p>
+                    <video src="video.mp4" class="media-content" controls playsinline></video>
+                    <video src="video1.mp4" class="media-content" controls playsinline></video>
+                    <button class="btn btn-next" onclick="flipPage(2)">Keyingi ➔</button>
+                </div>
+                <div class="page back">
+                    <div class="spine-shadow" style="left: auto; right: -15px;"></div>
+                    <h2>Senga dil izhorlarim</h2>
+                    <p>Har bir kuning xuddi o'zing kabi go'zal va quvonchga to'la bo'lsin. Men doim sening yoningda, sening tayanching bo'laman. Seni cheksiz sevgim bilan bag'rimga bosaman!</p>
+                    <img src="rasm2.jpg" alt="Romantik rasm" class="media-content">
+                    <button class="btn btn-prev" onclick="flipBack(1)">⬅ Qaytish</button>
+                </div>
+            </div>
+
+            <div class="leaf" id="leaf-1" style="z-index: 3;">
+                <div class="page front">
+                    <div class="spine-shadow"></div>
+                    <h2>Qalbim Gavhari</h2>
+                    <p>Seni bugungi quvonchli kuning bilan chin qalbimdan tabriklayman! Sen mening borlig'imsan, ko'zimning nurisan. Hayotimni yoritganing uchun rahmat!</p>
+                    <img src="rasm1.jpg" alt="Tabrik rasmi" class="media-content">
+                    <button class="btn btn-next" onclick="flipPage(1)">Keyingi ➔</button>
+                </div>
+                <div class="page back">
+                    <div class="spine-shadow" style="left: auto; right: -15px;"></div>
+                    <img src="rasm0.jpg" alt="Yana bir rasm" class="media-content" style="max-height: 60%">
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <div class="lightbox" id="lightbox">
+        <span class="close-btn" onclick="closeLightbox()">&times;</span>
+        <img id="lightbox-img" src="" alt="Katta rasm">
+        <div class="nav-btns">
+            <button class="btn" style="position:static" onclick="changeImage(-1)">⬅ Oldingi</button>
+            <button class="btn" style="position:static" onclick="changeImage(1)">Keyingi ➔</button>
+        </div>
+    </div>
+
+    <script>
+        // --- KITOB VARAQLASH MANTIG'I ---
+        let micEnabled = false;
+        let autoBlowTimeout;
+
+        function flipPage(leafNum) {
+            let leaf = document.getElementById(`leaf-${leafNum}`);
+            leaf.classList.add('flipped');
+            setTimeout(() => { leaf.style.zIndex = 10 + leafNum; }, 300);
+            
+            triggerParticles(); 
+
+            if (leafNum === 1 && !micEnabled) requestMicrophone();
+            if (leafNum === 3) autoBlowTimeout = setTimeout(() => { blowOutCandle(); }, 15000);
+        }
+
+        function flipBack(leafNum) {
+            let leaf = document.getElementById(`leaf-${leafNum}`);
+            leaf.classList.remove('flipped');
+            setTimeout(() => { leaf.style.zIndex = 4 - leafNum; }, 300);
+            
+            triggerParticles(); 
+
+            if (leafNum === 3) clearTimeout(autoBlowTimeout);
+        }
+
+        // --- YULDUZLAR VA SALYUT EFFEKTI ---
+        const canvas = document.getElementById('particles');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+
+        let particlesArray = [];
+        const colors = ['#ff4081', '#ffd54f', '#e040fb', '#ffffff', '#ff8a80'];
+
+        class Particle {
+            constructor() {
+                this.x = canvas.width / 2; 
+                this.y = canvas.height / 2;
+                this.size = Math.random() * 5 + 2;
+                this.speedX = Math.random() * 10 - 5;
+                this.speedY = Math.random() * 10 - 5;
+                this.color = colors[Math.floor(Math.random() * colors.length)];
+                this.life = 100; 
+            }
+            update() {
+                this.x += this.speedX; this.y += this.speedY;
+                this.size *= 0.95; this.life--;
+            }
+            draw() {
+                ctx.fillStyle = this.color; ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2); ctx.fill();
+            }
+        }
+
+        function triggerParticles() {
+            for (let i = 0; i < 150; i++) particlesArray.push(new Particle());
+            animateParticles();
+        }
+
+        function animateParticles() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            for (let i = 0; i < particlesArray.length; i++) {
+                particlesArray[i].update(); particlesArray[i].draw();
+                if (particlesArray[i].life <= 0 || particlesArray[i].size <= 0.2) {
+                    particlesArray.splice(i, 1); i--;
+                }
+            }
+            if (particlesArray.length > 0) requestAnimationFrame(animateParticles);
+        }
+
+        window.addEventListener('resize', () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; });
+
+        // --- MIKROFON VA SHAM PUFLASH ---
+        let audioContext, analyser;
+        async function requestMicrophone() {
+            try {
+                let stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                analyser = audioContext.createAnalyser();
+                let source = audioContext.createMediaStreamSource(stream);
+                source.connect(analyser); analyser.fftSize = 256;
+                micEnabled = true; detectBlowing(); 
+            } catch (err) { console.log("Mikrofon xatosi: ", err); }
+        }
+
+        function detectBlowing() {
+            if (!micEnabled) return;
+            const dataArray = new Uint8Array(analyser.frequencyBinCount);
+            analyser.getByteFrequencyData(dataArray);
+            let volume = dataArray.reduce((a, b) => a + b) / dataArray.length;
+
+            if (volume > 70 && document.getElementById('leaf-3').classList.contains('flipped')) {
+                blowOutCandle();
+            } else { requestAnimationFrame(detectBlowing); }
+        }
+
+        function blowOutCandle() {
+            let flame = document.getElementById('candleFlame');
+            if (flame) {
+                flame.style.display = 'none';
+                document.getElementById('candleMessage').style.display = 'block';
+                micEnabled = false; clearTimeout(autoBlowTimeout);
+                triggerParticles(); 
+            }
+        }
+
+        // --- GALEREYA (LIGHTBOX) MANTIG'I ---
+        let galleryImages = []; let currentIndex = 0;
+        window.onload = function() {
+            document.querySelectorAll('.gallery img').forEach((img, index) => {
+                galleryImages.push(img.src);
+                img.onclick = function() {
+                    currentIndex = index;
+                    document.getElementById('lightbox').style.display = 'flex';
+                    document.getElementById('lightbox-img').src = galleryImages[currentIndex];
+                };
+            });
+        };
+        function closeLightbox() { document.getElementById('lightbox').style.display = 'none'; }
+        function changeImage(step) {
+            currentIndex += step;
+            if (currentIndex >= galleryImages.length) currentIndex = 0;
+            if (currentIndex < 0) currentIndex = galleryImages.length - 1;
+            document.getElementById('lightbox-img').src = galleryImages[currentIndex];
+        }
+    </script>
+</body>
+</html>
